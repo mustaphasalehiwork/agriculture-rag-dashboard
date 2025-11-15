@@ -5,6 +5,9 @@ const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || "default-secret-key-change-in-production"
 );
 
+console.log('SESSION_SECRET loaded:', process.env.SESSION_SECRET ? 'YES' : 'NO');
+console.log('SESSION_SECRET length:', SESSION_SECRET.length);
+
 export interface SessionData {
   username: string;
   isAuthenticated: boolean;
@@ -17,23 +20,26 @@ export async function createSession(username: string): Promise<string> {
     .setExpirationTime("7d")
     .sign(SESSION_SECRET);
 
+  console.log('Token created successfully, length:', token.length);
   return token;
 }
 
 export async function verifySession(token: string): Promise<SessionData | null> {
   try {
     const { payload } = await jwtVerify(token, SESSION_SECRET);
+    console.log('verifySession => ', payload)
     return payload as unknown as SessionData;
-  } catch {
+  } catch (ex) {
+    console.log('error jwt => ', ex);
     return null;
   }
 }
 
 export async function getSession(): Promise<SessionData | null> {
+console.log('SESSION_SECRET => ', process.env.SESSION_SECRET)
   const cookieStore = await cookies();
-  console.log('cookieStore =>', cookieStore)
   const token = cookieStore.get("token")?.value;
-  console.log('token =>', token)
+  console.log('tokenxxxxxxxxxxxxxxx =>', token)
 
   if (!token) {
     return null;
@@ -44,7 +50,7 @@ export async function getSession(): Promise<SessionData | null> {
 
 export async function setSessionCookie(token: string) {
   const cookieStore = await cookies();
-  cookieStore.set("session", token, {
+  cookieStore.set("token", token, {
     httpOnly: true,
     secure: false, // Set to true only when using HTTPS
     sameSite: "lax",
@@ -55,7 +61,7 @@ export async function setSessionCookie(token: string) {
 
 export async function clearSessionCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete("session");
+  cookieStore.delete("token");
 }
 
 export function validateCredentials(username: string, password: string): boolean {

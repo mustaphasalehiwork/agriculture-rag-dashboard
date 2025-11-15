@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateCredentials, createSession, setSessionCookie } from "@/lib/auth";
+import { validateCredentials, createSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,12 +20,23 @@ export async function POST(request: NextRequest) {
     }
 
     const token = await createSession(username);
-    setSessionCookie(token);
+    console.log('Token created in login route, length:', token.length);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Login successful",
     });
+
+    // Set cookie in the response
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: false, // Set to true only when using HTTPS
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
