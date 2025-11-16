@@ -26,7 +26,7 @@ export default function DebugPage() {
 
     } catch (error) {
       console.error("Debug error:", error);
-      setApiResponse({ error: error.message });
+      setApiResponse({ error: error });
     } finally {
       setLoading(false);
     }
