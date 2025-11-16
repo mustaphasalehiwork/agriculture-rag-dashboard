@@ -59,32 +59,16 @@ jobs:
         cp .dockerignore deployment-package/
 
         # Create .env.example for deployment
-        cat > deployment-package/.env.example << 'EOF'
-# Node Environment
-NODE_ENV=production
-
-# Server Configuration
-PORT=3000
-
-# Authentication
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change_me_in_production
-SESSION_SECRET=generate_a_32_character_random_string_here
-JWT_SECRET=your-jwt-secret-key-here
-
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-
-# File Storage
-UPLOAD_DIR=./uploads
-
-# n8n Webhooks (optional)
-N8N_WEBHOOK_URL=http://localhost:5678
-N8N_UPLOAD_WEBHOOK=/webhook/upload
-N8N_DELETE_WEBHOOK=/webhook/delete
-EOF
+        echo "NODE_ENV=production" > deployment-package/.env.example
+        echo "PORT=3000" >> deployment-package/.env.example
+        echo "ADMIN_USERNAME=admin" >> deployment-package/.env.example
+        echo "ADMIN_PASSWORD=change_me_in_production" >> deployment-package/.env.example
+        echo "SESSION_SECRET=generate_a_32_character_random_string_here" >> deployment-package/.env.example
+        echo "JWT_SECRET=your-jwt-secret-key-here" >> deployment-package/.env.example
+        echo "NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here" >> deployment-package/.env.example
+        echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here" >> deployment-package/.env.example
+        echo "SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here" >> deployment-package/.env.example
+        echo "UPLOAD_DIR=./uploads" >> deployment-package/.env.example
 
         # Create production docker-compose
         sed 's|build:|build:\n        context: ./deployment-package|g' docker-compose.yml > deployment-package/docker-compose.prod.yml
