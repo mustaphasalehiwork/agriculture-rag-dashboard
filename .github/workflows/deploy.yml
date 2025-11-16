@@ -24,13 +24,16 @@ jobs:
 
     - name: Create .env.local for build
       run: |
-        cat > .env.local << EOF
-        NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-        NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-        JWT_SECRET=${{ secrets.JWT_SECRET }}
-        EOF
+        echo "Creating .env.local file..."
+        echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env.local
+        echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env.local
+        echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env.local
+        echo "SESSION_SECRET=${{ secrets.SESSION_SECRET }}" >> .env.local
+        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.local
+
+        # Debug: show the file was created
+        echo ".env.local contents (debug):"
+        cat .env.local | sed 's/=.*/=***HIDDEN***/'
 
     - name: Run tests
       run: npm test --if-present
