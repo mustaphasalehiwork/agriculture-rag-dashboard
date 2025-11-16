@@ -26,12 +26,6 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if script is run as root
-if [[ $EUID -eq 0 ]]; then
-    print_error "This script should not be run as root. Run as a regular user with sudo access."
-    exit 1
-fi
-
 # Update system
 print_status "Updating system packages..."
 sudo apt update && sudo apt upgrade -y
