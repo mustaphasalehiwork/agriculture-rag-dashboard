@@ -46,17 +46,21 @@ jobs:
         # Create deployment directory
         mkdir deployment-package
 
-        # Copy necessary files
-        cp Dockerfile deployment-package/
-        cp docker-compose.yml deployment-package/
-        cp package*.json deployment-package/
-        cp next.config.ts deployment-package/
-        cp -r public deployment-package/
-        cp -r src deployment-package/
-        cp tsconfig.json deployment-package/
-        cp tailwind.config.ts deployment-package/
-        cp postcss.config.mjs deployment-package/
-        cp .dockerignore deployment-package/
+        # Copy necessary files that exist
+        cp Dockerfile deployment-package/ || true
+        cp docker-compose.yml deployment-package/ || true
+        cp package*.json deployment-package/ || true
+        cp next.config.ts deployment-package/ || true
+        cp -r src deployment-package/ || true
+        cp tsconfig.json deployment-package/ || true
+        cp tailwind.config.ts deployment-package/ || true
+        cp postcss.config.mjs deployment-package/ || true
+        cp .dockerignore deployment-package/ || true
+
+        # Copy public directory if it exists
+        if [ -d "public" ]; then
+          cp -r public deployment-package/
+        fi
 
         # Create .env.example for deployment
         echo "NODE_ENV=production" > deployment-package/.env.example
@@ -74,27 +78,25 @@ jobs:
         sed 's|build:|build:\n        context: ./deployment-package|g' docker-compose.yml > deployment-package/docker-compose.prod.yml
 
         # Create deployment script
-        cat > deployment-package/deploy.sh << 'EOF'
-        #!/bin/bash
-        set -e
-
-        echo "🚀 Starting deployment..."
-
-        # Stop existing services
-        docker-compose -f docker-compose.prod.yml down --remove-orphans || true
-
-        # Build and start services
-        docker-compose -f docker-compose.prod.yml up -d --build
-
-        # Wait for services to be ready
-        echo "⏳ Waiting for services to be ready..."
-        sleep 30
-
-        # Check services status
-        docker-compose -f docker-compose.prod.yml ps
-
-        echo "✅ Deployment completed!"
-        EOF
+        echo '#!/bin/bash' > deployment-package/deploy.sh
+        echo 'set -e' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo 'echo "🚀 Starting deployment..."' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo '# Stop existing services' >> deployment-package/deploy.sh
+        echo 'docker-compose -f docker-compose.prod.yml down --remove-orphans || true' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo '# Build and start services' >> deployment-package/deploy.sh
+        echo 'docker-compose -f docker-compose.prod.yml up -d --build' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo '# Wait for services to be ready' >> deployment-package/deploy.sh
+        echo 'echo "⏳ Waiting for services to be ready..."' >> deployment-package/deploy.sh
+        echo 'sleep 30' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo '# Check services status' >> deployment-package/deploy.sh
+        echo 'docker-compose -f docker-compose.prod.yml ps' >> deployment-package/deploy.sh
+        echo '' >> deployment-package/deploy.sh
+        echo 'echo "✅ Deployment completed!"' >> deployment-package/deploy.sh
 
         chmod +x deployment-package/deploy.sh
 
