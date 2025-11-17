@@ -13,6 +13,15 @@ fi
 echo "📝 Setting up environment variables..."
 cp .env.production.docker .env
 
+# Verify environment variables are set
+echo "🔍 Verifying environment variables..."
+if ! grep -q "DOMAIN_NAME=" .env; then
+    echo "❌ Error: DOMAIN_NAME not found in .env file"
+    exit 1
+fi
+
+echo "✅ Environment variables verified"
+
 # Create Docker networks if they don't exist
 echo "🔗 Creating Docker networks..."
 docker network create traefik-network 2>/dev/null || true
