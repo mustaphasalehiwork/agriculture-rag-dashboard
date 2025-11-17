@@ -35,7 +35,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy the built application
-COPY --from=builder /app/public ./public
+RUN mkdir -p ./public
+COPY --from=builder /app/public ./public || echo "Public directory not found, continuing..."
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
