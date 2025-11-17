@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-function createSupabaseClient() {
+function createSupabaseClient(): SupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -11,8 +11,18 @@ function createSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey);
 }
 
-// Create a function that can be called when needed
-export const supabase = createSupabaseClient();
+// Lazy initialization - create client only when needed
+let supabaseClient: SupabaseClient | null = null;
+
+export function getSupabaseClient(): SupabaseClient {
+  if (!supabaseClient) {
+    supabaseClient = createSupabaseClient();
+  }
+  return supabaseClient;
+}
+
+// Export a function for backward compatibility
+export const supabase = getSupabaseClient;
 
 export interface IngestionJob {
   id: string;

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireAuth();
 
-    const { data: documents, error } = await supabase
+    const { data: documents, error } = await supabase()
       .from("ingestion_jobs")
       .select("*")
       .order("created_at", { ascending: false });

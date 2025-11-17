@@ -13,7 +13,7 @@ export async function DELETE(
     const { id: documentId } = await params;
 
     // First get the document to find the file path
-    const { data: document, error: fetchError } = await supabase
+    const { data: document, error: fetchError } = await supabase()
       .from("ingestion_jobs")
       .select("file_path")
       .eq("id", documentId)
@@ -27,7 +27,7 @@ export async function DELETE(
     }
 
     // Delete from database
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabase()
       .from("ingestion_jobs")
       .delete()
       .eq("id", documentId);

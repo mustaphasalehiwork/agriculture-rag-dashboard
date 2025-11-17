@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     console.log("User authenticated:", session.username);
     console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-    const { data: documents, error } = await supabase
+    const { data: documents, error } = await supabase()
       .from("ingestion_jobs")
       .select("*")
       .order("created_at", { ascending: false });

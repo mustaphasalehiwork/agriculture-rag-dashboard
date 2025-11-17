@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Create job record in Supabase
-    const { error: jobError } = await supabase
+    const { error: jobError } = await supabase()
       .from("ingestion_jobs")
       .insert({
         id: fileId,
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       // Simulate processing for demo purposes
       setTimeout(async () => {
         try {
-          await supabase
+          await supabase()
             .from("ingestion_jobs")
             .update({
               status: "completed",

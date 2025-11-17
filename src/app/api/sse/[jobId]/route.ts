@@ -22,7 +22,7 @@ export async function GET(
       // Send initial status
       const checkStatus = async () => {
         try {
-          const { data: job, error } = await supabase
+          const { data: job, error } = await supabase()
             .from("ingestion_jobs")
             .select("*")
             .eq("id", jobId)
