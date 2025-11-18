@@ -6,21 +6,30 @@ services:
       - --api.insecure=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik-network # <-- مهم: شبکه داکر را مشخص کن
       - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entryPoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entrypoints.websecure.address=:443
+      # ریدایرکت خودکار HTTP به HTTPS
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      
+      # ---- تنظیمات داشبورد Traefik ----
+      - --api.dashboard=true
+      # --api.insecure=true را حذف کردیم چون به صورت امن از طریق TLS دسترسی خواهیم داد
+      
+      # ---- تنظیمات SSL (Let's Encrypt) ----
       - --certificatesresolvers.mytlschallenge.acme.tlschallenge=true
       - --certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}
       - --certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json
     restart: always
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
+<<<<<<< HEAD
       - traefik-network
     labels:
       - traefik.enable=true
@@ -29,24 +38,40 @@ services:
       - traefik.http.routers.traefik.entrypoints=websecure
       - traefik.http.routers.traefik.tls.certresolver=mytlschallenge
       - traefik.http.routers.traefik.service=api@internal
+=======
+      - traefik-network # <-- مهم: Traefik را به شبکه مشترک متصل کن
+    labels:
+      # ---- لیبل‌ها برای دسترسی به داشبورد خود Traefik ----
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_NAME}`)" # <-- ساب‌دومین برای داشبورد
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=mytlschallenge"
+      - "traefik.http.routers.traefik.service=api@internal"
+      # (اختیاری) برای امنیت بیشتر می‌توانید BasicAuth اضافه کنید
+>>>>>>> 4ab77b3526de30173d630e3f7ac1e7ee93d2c697
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
     labels:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`${SUBDOMAIN}.${DOMAIN_NAME}`)
+<<<<<<< HEAD
       - traefik.http.routers.n8n.tls=true
       - traefik.http.routers.n8n.entrypoints=websecure
+=======
+      - traefik.http.routers.n8n.entrypoints=websecure # فقط websecure کافیست چون ریدایرکت داریم
+>>>>>>> 4ab77b3526de30173d630e3f7ac1e7ee93d2c697
       - traefik.http.routers.n8n.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.n8n.headers.SSLRedirect=true
-      - traefik.http.middlewares.n8n.headers.STSSeconds=315360000
-      - traefik.http.middlewares.n8n.headers.browserXSSFilter=true
-      - traefik.http.middlewares.n8n.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.n8n.headers.forceSTSHeader=true
-      - traefik.http.middlewares.n8n.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.n8n.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.n8n.headers.STSPreload=true
-      - traefik.http.routers.n8n.middlewares=n8n@docker
+      - traefik.http.routers.n8n.middlewares=n8n-headers@docker
+      # تعریف میدل‌ور در یک بخش جدا
+      - "traefik.http.middlewares.n8n-headers.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.n8n-headers.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.n8n-headers.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.n8n-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.n8n-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.n8n-headers.headers.SSLHost=${DOMAIN_NAME}"
+      - "traefik.http.middlewares.n8n-headers.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.n8n-headers.headers.STSPreload=true"
     environment:
       - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
       - N8N_PORT=5678
@@ -55,13 +80,23 @@ services:
       - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
     restart: always
-    ports:
-      - 127.0.0.1:5678:5678
+    # پورت مپینگ را می‌توانید حذف کنید چون Traefik از طریق شبکه داخلی به آن متصل می‌شود
+    # ports:
+    #   - 127.0.0.1:5678:5678
     volumes:
       - n8n_data:/home/node/.n8n
       - /local-files:/files
     networks:
+<<<<<<< HEAD
       - traefik-network
+=======
+      - traefik-network # <-- مهم: n8n را نیز به شبکه مشترک متصل کن
+    healthcheck: # اضافه کردن healthcheck
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+>>>>>>> 4ab77b3526de30173d630e3f7ac1e7ee93d2c697
 
   agriculture-rag-dashboard:
     build:
@@ -69,23 +104,24 @@ services:
       dockerfile: Dockerfile
     container_name: agriculture-rag-dashboard
     restart: unless-stopped
-    ports:
-      - 127.0.0.1:3000:3000
     labels:
       - traefik.enable=true
       - traefik.http.routers.agriculture-rag.rule=Host(`${DASHBOARD_SUBDOMAIN}.${DOMAIN_NAME}`)
+<<<<<<< HEAD
       - traefik.http.routers.agriculture-rag.tls=true
+=======
+>>>>>>> 4ab77b3526de30173d630e3f7ac1e7ee93d2c697
       - traefik.http.routers.agriculture-rag.entrypoints=websecure
       - traefik.http.routers.agriculture-rag.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.agriculture-rag-headers.headers.SSLRedirect=true
-      - traefik.http.middlewares.agriculture-rag-headers.headers.STSSeconds=315360000
-      - traefik.http.middlewares.agriculture-rag-headers.headers.browserXSSFilter=true
-      - traefik.http.middlewares.agriculture-rag-headers.headers.contentTypeNosniff=true
-      - traefik.http.middlewares.agriculture-rag-headers.headers.forceSTSHeader=true
-      - traefik.http.middlewares.agriculture-rag-headers.headers.SSLHost=${DOMAIN_NAME}
-      - traefik.http.middlewares.agriculture-rag-headers.headers.STSIncludeSubdomains=true
-      - traefik.http.middlewares.agriculture-rag-headers.headers.STSPreload=true
       - traefik.http.routers.agriculture-rag.middlewares=agriculture-rag-headers@docker
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.SSLRedirect=true"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.SSLHost=${DOMAIN_NAME}"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.agriculture-rag-headers.headers.STSPreload=true"
     environment:
       - NODE_ENV=production
       - PORT=3000
