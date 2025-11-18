@@ -60,6 +60,8 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - /local-files:/files
+    networks:
+      - traefik-network
 
   agriculture-rag-dashboard:
     build:
