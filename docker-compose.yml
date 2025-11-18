@@ -58,6 +58,8 @@ services:
       dockerfile: Dockerfile
     container_name: agriculture-rag-dashboard
     restart: unless-stopped
+    ports:
+      - 127.0.0.1:3000:3000
     labels:
       - traefik.enable=true
       - traefik.http.routers.agriculture-rag.rule=Host(`${DASHBOARD_SUBDOMAIN}.${DOMAIN_NAME}`)
@@ -83,10 +85,11 @@ services:
     networks:
       - traefik-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
 volumes:
   traefik_data:
