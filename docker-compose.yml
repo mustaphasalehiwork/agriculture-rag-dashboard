@@ -20,6 +20,15 @@ services:
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_NAME}`)
+      - traefik.http.routers.traefik.tls=true
+      - traefik.http.routers.traefik.entrypoints=websecure
+      - traefik.http.routers.traefik.tls.certresolver=mytlschallenge
+      - traefik.http.routers.traefik.service=api@internal
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
@@ -27,7 +36,7 @@ services:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`${SUBDOMAIN}.${DOMAIN_NAME}`)
       - traefik.http.routers.n8n.tls=true
-      - traefik.http.routers.n8n.entrypoints=web,websecure
+      - traefik.http.routers.n8n.entrypoints=websecure
       - traefik.http.routers.n8n.tls.certresolver=mytlschallenge
       - traefik.http.middlewares.n8n.headers.SSLRedirect=true
       - traefik.http.middlewares.n8n.headers.STSSeconds=315360000
@@ -51,6 +60,8 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - /local-files:/files
+    networks:
+      - traefik-network
 
   agriculture-rag-dashboard:
     build:
@@ -64,7 +75,7 @@ services:
       - traefik.enable=true
       - traefik.http.routers.agriculture-rag.rule=Host(`${DASHBOARD_SUBDOMAIN}.${DOMAIN_NAME}`)
       - traefik.http.routers.agriculture-rag.tls=true
-      - traefik.http.routers.agriculture-rag.entrypoints=web,websecure
+      - traefik.http.routers.agriculture-rag.entrypoints=websecure
       - traefik.http.routers.agriculture-rag.tls.certresolver=mytlschallenge
       - traefik.http.middlewares.agriculture-rag-headers.headers.SSLRedirect=true
       - traefik.http.middlewares.agriculture-rag-headers.headers.STSSeconds=315360000
