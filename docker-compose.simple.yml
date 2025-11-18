@@ -67,8 +67,10 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`${DASHBOARD_SUBDOMAIN}.${DOMAIN_NAME}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=mytlschallenge"
       - "traefik.http.services.dashboard.loadbalancer.server.port=3000"
+      - "traefik.http.services.dashboard.loadbalancer.passhostheader=true"
     environment:
       - "NODE_ENV=production"
       - "PORT=3000"
