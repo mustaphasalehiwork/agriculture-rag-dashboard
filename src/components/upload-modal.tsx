@@ -128,28 +128,31 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md bg-white shadow-xl border-0 rounded-xl">
+        <CardHeader className="pb-4">
           <CardTitle>Upload Document</CardTitle>
           <CardDescription>
             Upload a PDF document to add it to your knowledge base.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <div className="space-y-4">
             {!uploading ? (
               <>
                 <div>
-                  <Input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleFileChange}
-                    disabled={uploading}
-                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                    <Input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                      className="border-none p-0 h-auto cursor-pointer"
+                    />
+                  </div>
                   {file && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      Selected: {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                    <p className="text-sm text-gray-600 mt-2 font-medium">
+                      📄 {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
                     </p>
                   )}
                 </div>
@@ -181,9 +184,9 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                       {progress.chunks_processed} of {progress.total_chunks} chunks processed
                     </p>
                   )}
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${progress?.progress_percent || 0}%` }}
                     ></div>
                   </div>
