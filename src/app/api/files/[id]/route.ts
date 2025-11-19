@@ -8,17 +8,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Validate internal API key
-    const apiKey = request.headers.get("x-api-key");
-    const expectedApiKey = process.env.INTERNAL_API_KEY;
-
-    if (!apiKey || apiKey !== expectedApiKey) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
     // Get document details from database
