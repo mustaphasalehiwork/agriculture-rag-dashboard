@@ -22,7 +22,13 @@ const navigation = [
     description: "Manage PDF documents and uploads",
   },
   {
-    title: "Reports",
+    title: "Report RAG",
+    href: "/dashboard/rag-reports",
+    icon: BarChart3,
+    description: "View RAG-based reports",
+  },
+  {
+    title: "Report",
     href: "/dashboard/reports",
     icon: BarChart3,
     description: "View analytics and reports",

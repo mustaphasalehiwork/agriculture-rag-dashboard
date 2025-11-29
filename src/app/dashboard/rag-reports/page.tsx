@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FileText, HardDrive, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Download, RefreshCw } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { FileText, HardDrive, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
 interface Document {
   id: string;
@@ -35,29 +32,21 @@ interface ReportStats {
   }>;
 }
 
-export default function ReportsPage() {
+export default function RagReportsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ReportStats | null>(null);
 
   const fetchDocuments = async () => {
     try {
-      const { data: documents, error } = await supabase()
-        .from("ingestion_jobs")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to fetch documents from Supabase:", error);
-        toast.error("Failed to load documents from database");
-        return;
+      const response = await fetch("/api/documents");
+      if (response.ok) {
+        const data = await response.json();
+        setDocuments(data);
+        calculateStats(data);
       }
-
-      setDocuments(documents || []);
-      calculateStats(documents || []);
-    } catch (error) {
-      console.error("Failed to load documents:", error);
-      toast.error("Failed to load documents");
+    } catch {
+      console.error("Failed to load documents");
     } finally {
       setLoading(false);
     }
@@ -125,41 +114,6 @@ export default function ReportsPage() {
     return `${hours}h ${mins}m`;
   };
 
-  const exportToCSV = () => {
-    if (!documents.length) {
-      toast.error("No data to export");
-      return;
-    }
-
-    const headers = ['ID', 'Filename', 'Original Filename', 'Status', 'File Size', 'Total Chunks', 'Chunks Processed', 'Created At', 'Completed At'];
-    const csvContent = [
-      headers.join(','),
-      ...documents.map(doc => [
-        doc.id,
-        doc.filename,
-        doc.original_filename,
-        doc.status,
-        doc.file_size_bytes,
-        doc.total_chunks || 0,
-        doc.chunks_processed || 0,
-        doc.created_at,
-        doc.completed_at || ''
-      ].map(field => `"${field}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `supabase-reports-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    toast.success("Report exported successfully");
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -172,31 +126,9 @@ export default function ReportsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Supabase Reports & Analytics</h1>
-          <p className="text-gray-600 mt-1">Monitor your document processing performance and statistics from Supabase database</p>
-        </div>
-        <div className="flex gap-2">
-        <Button
-          onClick={exportToCSV}
-          disabled={loading || !documents.length}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
-        <Button
-          onClick={fetchDocuments}
-          disabled={loading}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">RAG Reports & Analytics</h1>
+        <p className="text-gray-600 mt-1">Monitor your RAG document processing performance and statistics</p>
       </div>
 
       {/* Key Metrics */}
@@ -347,16 +279,11 @@ export default function ReportsPage() {
 
       {/* Recent Documents */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Recent Documents</CardTitle>
-            <CardDescription>
-              Latest document uploads and their status from Supabase
-            </CardDescription>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {documents.length} total documents
-          </Badge>
+        <CardHeader>
+          <CardTitle>Recent Documents</CardTitle>
+          <CardDescription>
+            Latest document uploads and their status
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (
