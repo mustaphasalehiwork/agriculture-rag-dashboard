@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, HardDrive, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Download, RefreshCw } from "lucide-react";
+import { FileText, HardDrive, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Download, RefreshCw, Database, Users, Activity, Tag, Package, Settings, Wrench, AlertTriangle, Cpu, Truck, Sprout, Filter } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getAirtableClient, AIRTABLE_TABLES } from "@/lib/airtable";
 import { toast } from "sonner";
 
 interface Document {
@@ -19,6 +20,23 @@ interface Document {
   created_at: string;
   completed_at: string | null;
   error_message?: string | null;
+}
+
+interface AirtableRecord {
+  id: string;
+  fields: Record<string, any>;
+}
+
+interface SystemReport {
+  id: string;
+  title: string;
+  type: "operational" | "equipment" | "troubleshooting";
+  status: "active" | "resolved" | "pending";
+  priority: "high" | "medium" | "low";
+  created_at: string;
+  description: string;
+  category?: string;
+  assigned_to?: string;
 }
 
 interface ReportStats {
@@ -35,10 +53,22 @@ interface ReportStats {
   }>;
 }
 
+interface AirtableStats {
+  categories: number;
+  activities: number;
+  models: number;
+  checklists: number;
+  users: number;
+}
+
 export default function ReportsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAirtable, setLoadingAirtable] = useState(false);
+  const [activeTab, setActiveTab] = useState<"operational" | "equipment" | "troubleshooting">("operational");
   const [stats, setStats] = useState<ReportStats | null>(null);
+  const [airtableStats, setAirtableStats] = useState<AirtableStats | null>(null);
+  const [systemReports, setSystemReports] = useState<SystemReport[]>([]);
 
   const fetchDocuments = async () => {
     try {
@@ -63,6 +93,82 @@ export default function ReportsPage() {
     }
   };
 
+  const fetchAirtableStats = async () => {
+    setLoadingAirtable(true);
+    try {
+      const airtable = getAirtableClient();
+
+      const [categories, activities, models, checklists, users] = await Promise.all([
+        airtable.base('appSFfG3TTY5qFRyr').table(AIRTABLE_TABLES.CATEGORIES).select().firstPage(),
+        airtable.base('appSFfG3TTY5qFRyr').table(AIRTABLE_TABLES.ACTIVITIES).select().firstPage(),
+        airtable.base('appSFfG3TTY5qFRyr').table(AIRTABLE_TABLES.MODELS).select().firstPage(),
+        airtable.base('appSFfG3TTY5qFRyr').table(AIRTABLE_TABLES.CHECKLISTS).select().firstPage(),
+        airtable.base('appSFfG3TTY5qFRyr').table(AIRTABLE_TABLES.USERS).select().firstPage()
+      ]);
+
+      setAirtableStats({
+        categories: categories.length,
+        activities: activities.length,
+        models: models.length,
+        checklists: checklists.length,
+        users: users.length
+      });
+
+      toast.success("Airtable data loaded successfully");
+    } catch (error) {
+      console.error("Failed to fetch Airtable data:", error);
+      toast.error("Failed to load Airtable data");
+    } finally {
+      setLoadingAirtable(false);
+    }
+  };
+
+  const fetchSystemReports = async () => {
+    try {
+      // Simulate fetching system reports - in real implementation, this would come from your database
+      const mockReports: SystemReport[] = [
+        {
+          id: "1",
+          title: "Irrigation System Maintenance",
+          type: "operational",
+          status: "active",
+          priority: "high",
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+          description: "Monthly maintenance check for irrigation pumps and filters",
+          category: "Irrigation",
+          assigned_to: "John Doe"
+        },
+        {
+          id: "2",
+          title: "Tractor Engine Oil Change",
+          type: "equipment",
+          status: "pending",
+          priority: "medium",
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+          description: "Routine oil change for John Deere tractor #123",
+          category: "Vehicles",
+          assigned_to: "Mike Smith"
+        },
+        {
+          id: "3",
+          title: "Sensor Calibration Required",
+          type: "troubleshooting",
+          status: "resolved",
+          priority: "high",
+          created_at: new Date(Date.now() - 259200000).toISOString(),
+          description: "Soil moisture sensors showing incorrect readings",
+          category: "Sensors",
+          assigned_to: "Sarah Johnson"
+        }
+      ];
+
+      setSystemReports(mockReports);
+    } catch (error) {
+      console.error("Failed to fetch system reports:", error);
+      toast.error("Failed to load system reports");
+    }
+  };
+
   const calculateStats = (docs: Document[]) => {
     const totalDocuments = docs.length;
     const completedDocuments = docs.filter((doc) => doc.status === "completed").length;
@@ -72,17 +178,15 @@ export default function ReportsPage() {
     const totalSize = docs.reduce((sum, doc) => sum + doc.file_size_bytes, 0);
     const totalChunks = docs.reduce((sum, doc) => sum + (doc.total_chunks || 0), 0);
 
-    // Calculate average processing time (in minutes)
     const completedDocs = docs.filter((doc) => doc.status === "completed" && doc.completed_at);
     const averageProcessingTime = completedDocs.length > 0
       ? completedDocs.reduce((sum, doc) => {
           const created = new Date(doc.created_at).getTime();
           const completed = new Date(doc.completed_at!).getTime();
-          return sum + (completed - created) / (1000 * 60); // Convert to minutes
+          return sum + (completed - created) / (1000 * 60);
         }, 0) / completedDocs.length
       : 0;
 
-    // Generate upload trend for last 7 days
     const uploadTrend = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - (6 - i));
@@ -108,6 +212,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchDocuments();
+    fetchSystemReports();
   }, []);
 
   const formatFileSize = (bytes: number) => {
@@ -151,7 +256,7 @@ export default function ReportsPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `supabase-reports-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `agriculture-reports-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -159,6 +264,40 @@ export default function ReportsPage() {
 
     toast.success("Report exported successfully");
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+      case 'processing':
+        return 'text-blue-600 bg-blue-100';
+      case 'completed':
+      case 'resolved':
+        return 'text-green-600 bg-green-100';
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'failed':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'text-red-600 bg-red-100';
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'low':
+        return 'text-green-600 bg-green-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const filteredReports = systemReports.filter(report =>
+    activeTab === "operational" || report.type === activeTab
+  );
 
   if (loading) {
     return (
@@ -174,239 +313,141 @@ export default function ReportsPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Supabase Reports & Analytics</h1>
-          <p className="text-gray-600 mt-1">Monitor your document processing performance and statistics from Supabase database</p>
+          <h1 className="text-3xl font-bold text-gray-900">Agriculture System Reports</h1>
+          <p className="text-gray-600 mt-1">Comprehensive monitoring and analytics for agricultural operations</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={fetchAirtableStats}
+            disabled={loadingAirtable}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Database className={`h-4 w-4 ${loadingAirtable ? 'animate-pulse' : ''}`} />
+            Load Airtable Data
+          </Button>
+          <Button
+            onClick={exportToCSV}
+            disabled={loading || !documents.length}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            onClick={() => {
+              fetchDocuments();
+              fetchSystemReports();
+            }}
+            disabled={loading}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            تازه‌سازی همه
+          </Button>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
         <Button
-          onClick={exportToCSV}
-          disabled={loading || !documents.length}
-          variant="outline"
+          variant={activeTab === "operational" ? "default" : "ghost"}
+          onClick={() => setActiveTab("operational")}
           className="flex items-center gap-2"
         >
-          <Download className="h-4 w-4" />
-          Export CSV
+          <Database className="h-4 w-4" />
+          Operational Reports
         </Button>
         <Button
-          onClick={fetchDocuments}
-          disabled={loading}
-          variant="outline"
+          variant={activeTab === "equipment" ? "default" : "ghost"}
+          onClick={() => setActiveTab("equipment")}
           className="flex items-center gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <Truck className="h-4 w-4" />
+          Equipment Reports
+        </Button>
+        <Button
+          variant={activeTab === "troubleshooting" ? "default" : "ghost"}
+          onClick={() => setActiveTab("troubleshooting")}
+          className="flex items-center gap-2"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          Troubleshooting
         </Button>
       </div>
-      </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Detailed Reports View */}
+      {(activeTab !== "overview") && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalDocuments || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(stats?.totalSize || 0)} total size
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{successRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.completedDocuments || 0} successful
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Chunks</CardTitle>
-            <HardDrive className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalChunks || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all documents
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Processing Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatDuration(stats?.averageProcessingTime || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Per document
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-green-200 bg-green-50">
           <CardHeader>
-            <CardTitle className="text-green-800 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Completed
+            <CardTitle className="flex items-center gap-2">
+              {activeTab === "operational" && <Settings className="h-5 w-5" />}
+              {activeTab === "equipment" && <Truck className="h-5 w-5" />}
+              {activeTab === "troubleshooting" && <Wrench className="h-5 w-5" />}
+              {activeTab === "operational" && "Operational Reports"}
+              {activeTab === "equipment" && "Equipment & Machinery Reports"}
+              {activeTab === "troubleshooting" && "Troubleshooting & Issue Reports"}
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {stats?.completedDocuments || 0}
-            </div>
-            <p className="text-green-700 text-sm">
-              Documents processed successfully
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Processing
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
-              {stats?.processingDocuments || 0}
-            </div>
-            <p className="text-blue-700 text-sm">
-              Currently being processed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
-              <XCircle className="h-5 w-5" />
-              Failed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
-              {stats?.failedDocuments || 0}
-            </div>
-            <p className="text-red-700 text-sm">
-              Documents that failed to process
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upload Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Trend (Last 7 Days)</CardTitle>
-          <CardDescription>
-            Number of documents uploaded per day
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end justify-between h-32 px-4">
-            {stats?.uploadTrend.map((day, index) => {
-              const maxUploads = Math.max(...stats.uploadTrend.map(d => d.uploads));
-              const height = maxUploads > 0 ? (day.uploads / maxUploads) * 100 : 0;
-
-              return (
-                <div key={index} className="flex flex-col items-center flex-1">
-                  <div className="w-full flex justify-center">
-                    <div
-                      className="bg-blue-600 rounded-t transition-all duration-300"
-                      style={{ height: `${height}%`, width: '20px' }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2 text-center">
-                    {day.date}
-                  </div>
-                  <div className="text-sm font-medium text-center">
-                    {day.uploads}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Documents */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Recent Documents</CardTitle>
             <CardDescription>
-              Latest document uploads and their status from Supabase
+              {activeTab === "operational" && "System operational status and maintenance reports"}
+              {activeTab === "equipment" && "Equipment maintenance and performance reports"}
+              {activeTab === "troubleshooting" && "System troubleshooting and issue resolution reports"}
             </CardDescription>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {documents.length} total documents
-          </Badge>
-        </CardHeader>
-        <CardContent>
-          {documents.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
-              <p className="text-gray-500">Upload some documents to see analytics here.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {documents.slice(0, 10).map((document) => (
-                <div key={document.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900 truncate max-w-xs">
-                        {document.original_filename}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatFileSize(document.file_size_bytes)} •
-                        {new Date(document.created_at).toLocaleDateString()}
-                      </p>
+          </CardHeader>
+          <CardContent>
+            {filteredReports.length === 0 ? (
+              <div className="text-center py-8">
+                {activeTab === "operational" && <Settings className="mx-auto h-12 w-12 text-gray-400 mb-4" />}
+                {activeTab === "equipment" && <Truck className="mx-auto h-12 w-12 text-gray-400 mb-4" />}
+                {activeTab === "troubleshooting" && <Wrench className="mx-auto h-12 w-12 text-gray-400 mb-4" />}
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No reports found</h3>
+                <p className="text-gray-500">No {activeTab} reports available at this time.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredReports.map((report) => (
+                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{report.title}</h3>
+                        <p className="text-sm text-gray-500 mt-1">{report.description}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          {report.category && (
+                            <Badge variant="outline" className="text-xs">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {report.category}
+                            </Badge>
+                          )}
+                          {report.assigned_to && (
+                            <Badge variant="outline" className="text-xs">
+                              <Users className="h-3 w-3 mr-1" />
+                              {report.assigned_to}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {new Date(report.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-xs ${getStatusColor(report.status)}`}>
+                        {report.status}
+                      </Badge>
+                      <Badge className={`text-xs ${getPriorityColor(report.priority)}`}>
+                        {report.priority} priority
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        document.status === "completed"
-                          ? "secondary"
-                          : document.status === "processing"
-                          ? "secondary"
-                          : "secondary"
-                      }
-                      className={
-                        document.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : document.status === "processing"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-red-100 text-red-800"
-                      }
-                    >
-                      {document.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
