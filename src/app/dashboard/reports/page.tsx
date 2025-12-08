@@ -125,44 +125,85 @@ export default function ReportsPage() {
 
   const fetchSystemReports = async () => {
     try {
-      // Simulate fetching system reports - in real implementation, this would come from your database
-      const mockReports: SystemReport[] = [
-        {
-          id: "1",
-          title: "Irrigation System Maintenance",
-          type: "operational",
-          status: "active",
-          priority: "high",
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          description: "Monthly maintenance check for irrigation pumps and filters",
-          category: "Irrigation",
-          assigned_to: "John Doe"
-        },
-        {
-          id: "2",
-          title: "Tractor Engine Oil Change",
-          type: "equipment",
-          status: "pending",
-          priority: "medium",
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-          description: "Routine oil change for John Deere tractor #123",
-          category: "Vehicles",
-          assigned_to: "Mike Smith"
-        },
-        {
-          id: "3",
-          title: "Sensor Calibration Required",
-          type: "troubleshooting",
-          status: "resolved",
-          priority: "high",
-          created_at: new Date(Date.now() - 259200000).toISOString(),
-          description: "Soil moisture sensors showing incorrect readings",
-          category: "Sensors",
-          assigned_to: "Sarah Johnson"
-        }
-      ];
+      // Fetch real system reports from Airtable
+      const airtable = getAirtableClient();
 
-      setSystemReports(mockReports);
+      // Fetch active checklist items
+      const activeChecklists = await airtable
+        .base('appSFfG3TTY5qFRyr')
+        .table(AIRTABLE_TABLES.CHECKLISTS)
+        .select()
+        .firstPage();
+
+      // Fetch activity reports
+      const activityReports = await airtable
+        .base('appSFfG3TTY5qFRyr')
+        .table(AIRTABLE_TABLES.ACTIVITIES)
+        .select()
+        .firstPage();
+
+      // Fetch equipment models data
+      const equipmentModels = await airtable
+        .base('appSFfG3TTY5qFRyr')
+        .table(AIRTABLE_TABLES.MODELS)
+        .select()
+        .firstPage();
+
+      // Generate system reports from Airtable data
+      const generatedReports: SystemReport[] = [];
+
+      // Convert active checklists to operational reports
+      activeChecklists.forEach((checklist: any, index: number) => {
+        generatedReports.push({
+          id: `checklist_${index + 1}`,
+          title: checklist.fields['Name'] || `Checklist #${index + 1}`,
+          type: "operational",
+          status: checklist.fields['Completed'] ? "completed" : "active",
+          priority: checklist.fields['Priority']?.toLowerCase() || "medium",
+          created_at: new Date(checklist.createdTime).toISOString(),
+          description: checklist.fields['Description'] || "System performance check",
+          category: checklist.fields['Category'] || "General",
+          assigned_to: checklist.fields['AssignedTo'] || ""
+        });
+      });
+
+      // Convert activities to reports
+      activityReports.forEach((activity: any, index: number) => {
+        generatedReports.push({
+          id: `activity_${index + 1}`,
+          title: activity.fields['Title'] || `Activity #${index + 1}`,
+          type: activity.fields['Type']?.toLowerCase() || "operational",
+          status: activity.fields['Status']?.toLowerCase() || "active",
+          priority: activity.fields['Priority']?.toLowerCase() || "medium",
+          created_at: new Date(activity.createdTime).toISOString(),
+          description: activity.fields['Description'] || "Operational activity report",
+          category: activity.fields['Category'] || "Operations",
+          assigned_to: activity.fields['AssignedTo'] || ""
+        });
+      });
+
+      // Convert equipment data to equipment reports
+      equipmentModels.forEach((equipment: any, index: number) => {
+        const equipmentType = equipment.fields['Type'] || "General";
+        const modelName = equipment.fields['ModelName'] || `Model #${index + 1}`;
+        const modelId = equipment.fields['ModelId'] || `model_${index + 1}`;
+
+        generatedReports.push({
+          id: `equipment_${index + 1}`,
+          title: `${equipmentType} Report: ${modelName}`,
+          type: "equipment",
+          status: equipment.fields['Status']?.toLowerCase() || "active",
+          priority: equipment.fields['Priority']?.toLowerCase() || "medium",
+          created_at: new Date(equipment.createdTime).toISOString(),
+          description: `${equipmentType} status and performance report - ${modelName}`,
+          category: equipmentType,
+          assigned_to: equipment.fields['AssignedTo'] || ""
+        });
+      });
+
+      setSystemReports(generatedReports);
+      toast.success("Reports loaded successfully from Airtable");
+
     } catch (error) {
       console.error("Failed to fetch system reports:", error);
       toast.error("Failed to load system reports");
@@ -345,7 +386,7 @@ export default function ReportsPage() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            تازه‌سازی همه
+            Refresh All
           </Button>
         </div>
       </div>
