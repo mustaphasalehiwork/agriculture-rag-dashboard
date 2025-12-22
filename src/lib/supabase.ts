@@ -24,6 +24,9 @@ export function getSupabaseClient(): SupabaseClient {
 // Export a function for backward compatibility
 export const supabase = getSupabaseClient;
 
+// Export the createClient function for server-side usage
+export { createClient };
+
 export interface IngestionJob {
   id: string;
   filename: string;

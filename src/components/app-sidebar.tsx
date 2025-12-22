@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { FileText, BarChart3, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { FileText, BarChart3, Users, Shield } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,23 +12,29 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navigation = [
   {
     title: "Documents",
     href: "/dashboard/documents",
     icon: FileText,
-    description: "Manage PDF documents and uploads",
+    description: "Manage PDF documents and file uploads",
   },
   {
-    title: "Report RAG",
+    title: "Operator Performance",
+    href: "/dashboard/operator-performance",
+    icon: Users,
+    description: "View weekly operator performance metrics",
+  },
+  {
+    title: "RAG Reports",
     href: "/dashboard/rag-reports",
     icon: BarChart3,
     description: "View RAG-based reports",
   },
   {
-    title: "Report",
+    title: "Reports",
     href: "/dashboard/reports",
     icon: BarChart3,
     description: "View analytics and reports",
@@ -37,23 +43,7 @@ const navigation = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        router.push("/login");
-      } else {
-        toast.error("Failed to logout");
-      }
-    } catch {
-      toast.error("Failed to logout");
-    }
-  };
+  const { user, isAdmin } = useAuth();
 
   return (
     <Sidebar>
@@ -63,8 +53,8 @@ export function AppSidebar() {
             A
           </div>
           <div>
-            <h1 className="font-semibold">AgriRAG</h1>
-            <p className="text-xs text-gray-500">Dashboard</p>
+            <h1 className="font-semibold">Agriculture Dashboard</h1>
+            <p className="text-xs text-gray-500">RAG Analytics System</p>
           </div>
         </div>
       </SidebarHeader>
@@ -86,18 +76,36 @@ export function AppSidebar() {
               </SidebarMenuItem>
             );
           })}
+
+          {/* Admin-only navigation */}
+          {user && isAdmin() && (
+            <>
+              <SidebarMenuItem>
+                <div className="px-2 py-1">
+                  <div className="border-t border-border my-2" />
+                </div>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/dashboard/users">
+                  <SidebarMenuButton
+                    variant={pathname === "/dashboard/users" ? "active" : "default"}
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>User Management</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            </>
+          )}
         </SidebarMenu>
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50">
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="px-3 py-2">
+          <p className="text-xs text-muted-foreground">
+            Logged in as: {user?.email || "Guest User"}
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

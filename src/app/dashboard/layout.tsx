@@ -1,27 +1,31 @@
-import { redirect } from "next/navigation";
-import { requireAuth } from "@/lib/auth";
-import { MobileSidebar } from "@/components/mobile-sidebar";
+"use client";
 
-export default async function DashboardLayout({
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { UserMenu } from "@/components/auth/UserMenu";
+import { AppSidebar } from "@/components/app-sidebar";
+
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Verify user is authenticated
-  try {
-    await requireAuth();
-  } catch (ex) {
-    console.log('requireAuth => ', ex)
-    redirect("/login");
-  }
-
   return (
-    <div className="flex h-screen bg-gray-100">
-      <MobileSidebar>
-        <main className="flex-1 overflow-auto pt-16 lg:pt-0">
-          {children}
-        </main>
-      </MobileSidebar>
-    </div>
+    <ProtectedRoute>
+      <div className="flex h-screen overflow-hidden">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-14 items-center pr-4 pl-6">
+              <div className="mr-auto flex items-center space-x-4">
+                <UserMenu />
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 }

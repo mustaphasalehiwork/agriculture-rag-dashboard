@@ -65,7 +65,7 @@ export default function ReportsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAirtable, setLoadingAirtable] = useState(false);
-  const [activeTab, setActiveTab] = useState<"operational" | "equipment" | "troubleshooting">("operational");
+  const [activeTab, setActiveTab] = useState<"overview" | "operational" | "equipment" | "troubleshooting">("overview");
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [airtableStats, setAirtableStats] = useState<AirtableStats | null>(null);
   const [systemReports, setSystemReports] = useState<SystemReport[]>([]);
@@ -158,7 +158,7 @@ export default function ReportsPage() {
           id: `checklist_${index + 1}`,
           title: checklist.fields['Name'] || `Checklist #${index + 1}`,
           type: "operational",
-          status: checklist.fields['Completed'] ? "completed" : "active",
+          status: checklist.fields['Completed'] ? "resolved" : "active",
           priority: checklist.fields['Priority']?.toLowerCase() || "medium",
           created_at: new Date(checklist.createdTime).toISOString(),
           description: checklist.fields['Description'] || "System performance check",
@@ -336,9 +336,9 @@ export default function ReportsPage() {
     }
   };
 
-  const filteredReports = systemReports.filter(report =>
-    activeTab === "operational" || report.type === activeTab
-  );
+  const filteredReports = activeTab === "overview"
+    ? systemReports
+    : systemReports.filter(report => report.type === activeTab);
 
   if (loading) {
     return (
