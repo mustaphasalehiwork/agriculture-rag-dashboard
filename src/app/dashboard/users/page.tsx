@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users, Shield, UserPlus, Trash2, Mail, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { getSupabaseClient } from "@/lib/supabase";
 
 interface UserProfile {
   id: string;
@@ -48,26 +49,42 @@ export default function UsersManagementPage() {
 
   const fetchUsers = async () => {
     try {
-      // Note: This is for example. In real case, you should use Supabase Admin API
-      // or build an API endpoint that returns user information
+      // Get session token
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
 
-      // For demo purpose, we create sample users
-      const mockUsers: UserProfile[] = user ? [{
-        id: user.id,
-        email: user.email || 'admin@example.com',
-        created_at: new Date().toISOString(),
-        last_sign_in_at: new Date().toISOString(),
-        user_metadata: {
-          name: "System Admin",
-          role: "admin"
+      if (!session) {
+        toast.error("Not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
         }
-      }] : [];
+      });
 
-      setUsers(mockUsers);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch users');
+      }
+
+      const data = await response.json();
+
+      // Transform Supabase users to UserProfile format
+      const transformedUsers: UserProfile[] = data.users.map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        user_metadata: u.user_metadata || {}
+      }));
+
+      setUsers(transformedUsers);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Error fetching user information");
+      toast.error(error instanceof Error ? error.message : "Error fetching user information");
       setLoading(false);
     }
   };
@@ -81,15 +98,41 @@ export default function UsersManagementPage() {
 
     setCreatingUser(true);
     try {
-      // Note: This should be done through a secure API endpoint
-      toast.success("New user created successfully (demo)");
+      // Get session token
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
 
+      if (!session) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          email: newUser.email,
+          password: newUser.password,
+          name: newUser.name
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create user');
+      }
+
+      const data = await response.json();
+
+      toast.success("New user created successfully");
       setNewUser({ email: "", password: "", name: "" });
       setShowCreateUser(false);
       fetchUsers();
     } catch (error) {
       console.error("Error creating user:", error);
-      toast.error("Error creating new user");
+      toast.error(error instanceof Error ? error.message : "Error creating new user");
     } finally {
       setCreatingUser(false);
     }
@@ -97,7 +140,7 @@ export default function UsersManagementPage() {
 
   const handleDeleteUser = async (userId: string, email: string) => {
     if (email === user?.email) {
-      toast.error("Cannot delete admin account");
+      toast.error("Cannot delete your own account");
       return;
     }
 
@@ -106,12 +149,33 @@ export default function UsersManagementPage() {
     }
 
     try {
-      // Note: This should be done through a secure API endpoint
-      toast.success("User deleted successfully (demo)");
+      // Get session token
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
+
+      if (!session) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const response = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
+
+      toast.success("User deleted successfully");
       fetchUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
-      toast.error("Error deleting user");
+      toast.error(error instanceof Error ? error.message : "Error deleting user");
     }
   };
 
