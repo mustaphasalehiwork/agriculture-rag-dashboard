@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BarChart3, Users, Shield } from "lucide-react";
+import { FileText, BarChart3, Users, Shield, Building2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -84,6 +84,16 @@ export function AppSidebar() {
                 <div className="px-2 py-1">
                   <div className="border-t border-border my-2" />
                 </div>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/dashboard/companies">
+                  <SidebarMenuButton
+                    variant={pathname === "/dashboard/companies" ? "active" : "default"}
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Companies</span>
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <Link href="/dashboard/users">
