@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BarChart3, Users, Shield, Building2 } from "lucide-react";
+import { FileText, BarChart3, Users, Shield, Building2, Wheat, Tag, Activity } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +38,24 @@ const navigation = [
     href: "/dashboard/reports",
     icon: BarChart3,
     description: "View analytics and reports",
+  },
+  {
+    title: "Farms",
+    href: "/dashboard/farms",
+    icon: Wheat,
+    description: "Manage farms and agricultural land",
+  },
+  {
+    title: "Categories",
+    href: "/dashboard/categories",
+    icon: Tag,
+    description: "Manage equipment categories",
+  },
+  {
+    title: "Activities",
+    href: "/dashboard/activities",
+    icon: Activity,
+    description: "Manage agricultural activities",
   },
 ];
 

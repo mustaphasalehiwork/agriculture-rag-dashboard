@@ -60,17 +60,24 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       setCompanies(data.companies || []);
 
-      // Set current company from localStorage or first company
-      const savedCompanyId = localStorage.getItem('currentCompanyId');
-      if (savedCompanyId) {
-        const savedCompany = data.companies.find((c: CompanyWithStats) => c.id === savedCompanyId);
-        if (savedCompany) {
-          setCurrentCompanyState(savedCompany);
+      // Set current company: prioritize primary company, then saved company, then first company
+      const primaryCompany = data.companies.find((c: CompanyWithStats) => c.user_role && c.is_primary);
+
+      if (primaryCompany) {
+        setCurrentCompanyState(primaryCompany);
+        localStorage.setItem('currentCompanyId', primaryCompany.id);
+      } else {
+        const savedCompanyId = localStorage.getItem('currentCompanyId');
+        if (savedCompanyId) {
+          const savedCompany = data.companies.find((c: CompanyWithStats) => c.id === savedCompanyId);
+          if (savedCompany) {
+            setCurrentCompanyState(savedCompany);
+          } else {
+            setCurrentCompanyState(data.companies[0] || null);
+          }
         } else {
           setCurrentCompanyState(data.companies[0] || null);
         }
-      } else {
-        setCurrentCompanyState(data.companies[0] || null);
       }
 
       setLoading(false);

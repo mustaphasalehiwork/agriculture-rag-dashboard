@@ -22,20 +22,21 @@ export interface Company {
 export interface CompanyWithStats extends Company {
   user_count?: number;
   checklist_count?: number;
-  user_role?: 'admin' | 'manager' | 'member';
+  user_role?: 'Supervisor / Director' | 'Coordinator' | 'Operator';
+  is_primary?: boolean;
 }
 
 export interface UserCompany {
   id: string;
   user_id: string;
   company_id: string;
-  role: 'admin' | 'manager' | 'member';
+  role: 'Supervisor / Director' | 'Coordinator' | 'Operator';
   is_primary: boolean;
   joined_at: string;
   company?: Company;
 }
 
-export type CompanyRole = 'admin' | 'manager' | 'member';
+export type CompanyRole = 'Supervisor / Director' | 'Coordinator' | 'Operator';
 
 export interface CreateCompanyRequest {
   name: string;

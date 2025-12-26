@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CompanySwitcher() {
   const { companies, currentCompany, switchCompany, loading } = useCompany();
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
 
   if (loading) {
@@ -33,6 +35,17 @@ export function CompanySwitcher() {
     );
   }
 
+  // Non-admin users only see current company name without switcher
+  if (!isAdmin()) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">{currentCompany.name}</span>
+      </div>
+    );
+  }
+
+  // Admin users get full switcher functionality
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>

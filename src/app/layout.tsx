@@ -4,6 +4,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { FarmProvider } from "@/contexts/FarmContext";
+import { CategoryProvider } from "@/contexts/CategoryContext";
+import { ActivityProvider } from "@/contexts/ActivityContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,8 +35,14 @@ export default function RootLayout({
       >
         <AuthProvider>
           <CompanyProvider>
-            {children}
-            <Toaster />
+            <FarmProvider>
+              <CategoryProvider>
+                <ActivityProvider>
+                  {children}
+                  <Toaster />
+                </ActivityProvider>
+              </CategoryProvider>
+            </FarmProvider>
           </CompanyProvider>
         </AuthProvider>
       </body>

@@ -6,8 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { Users, Shield, UserPlus, Trash2, Mail, Calendar } from "lucide-react";
+import { useCompany } from "@/contexts/CompanyContext";
+import { Users, Shield, UserPlus, Trash2, Mail, Calendar, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSupabaseClient } from "@/lib/supabase";
 
@@ -20,17 +28,23 @@ interface UserProfile {
     name?: string;
     role?: string;
   };
+  company_id?: string | null;
+  role?: string;
 }
 
 export default function UsersManagementPage() {
   const { user, isAdmin } = useAuth();
+  const { companies } = useCompany();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [newUser, setNewUser] = useState({
     email: "",
     password: "",
-    name: ""
+    name: "",
+    company_id: "",
+    role: "Operator"
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -70,6 +84,7 @@ export default function UsersManagementPage() {
       }
 
       const data = await response.json();
+      console.log("Fetched users data:", data);
 
       // Transform Supabase users to UserProfile format
       const transformedUsers: UserProfile[] = data.users.map((u: any) => ({
@@ -77,9 +92,12 @@ export default function UsersManagementPage() {
         email: u.email,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
-        user_metadata: u.user_metadata || {}
+        user_metadata: u.user_metadata || {},
+        company_id: u.company_id || null,
+        role: u.role || 'Operator'
       }));
 
+      console.log("Transformed users:", transformedUsers);
       setUsers(transformedUsers);
       setLoading(false);
     } catch (error) {
@@ -93,6 +111,11 @@ export default function UsersManagementPage() {
     e.preventDefault();
     if (!newUser.email || !newUser.password) {
       toast.error("Email and password are required");
+      return;
+    }
+
+    if (!newUser.company_id) {
+      toast.error("Please select a company");
       return;
     }
 
@@ -115,7 +138,9 @@ export default function UsersManagementPage() {
         body: JSON.stringify({
           email: newUser.email,
           password: newUser.password,
-          name: newUser.name
+          name: newUser.name,
+          company_id: newUser.company_id,
+          role: newUser.role
         })
       });
 
@@ -127,7 +152,7 @@ export default function UsersManagementPage() {
       const data = await response.json();
 
       toast.success("New user created successfully");
-      setNewUser({ email: "", password: "", name: "" });
+      setNewUser({ email: "", password: "", name: "", company_id: "", role: "Operator" });
       setShowCreateUser(false);
       fetchUsers();
     } catch (error) {
@@ -179,6 +204,88 @@ export default function UsersManagementPage() {
     }
   };
 
+  const handleEditUser = async (userProfile: UserProfile) => {
+    setEditingUser(userProfile);
+    setNewUser({
+      email: userProfile.email,
+      password: "", // Don't populate password for security
+      name: userProfile.user_metadata.name || "",
+      company_id: userProfile.company_id || "",
+      role: userProfile.role || "Operator"
+    });
+    setShowCreateUser(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    if (!newUser.email) {
+      toast.error("Email is required");
+      return;
+    }
+
+    if (!newUser.company_id) {
+      toast.error("Please select a company");
+      return;
+    }
+
+    setCreatingUser(true);
+    try {
+      // Get session token
+      const { data: { session } } = await getSupabaseClient().auth.getSession();
+
+      if (!session) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          company_id: newUser.company_id,
+          role: newUser.role
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Update user error response:", error);
+        throw new Error(error.error || 'Failed to update user');
+      }
+
+      const result = await response.json();
+      console.log("Update user result:", result);
+
+      toast.success("User updated successfully");
+      setEditingUser(null);
+      setNewUser({ email: "", password: "", name: "", company_id: "", role: "Operator" });
+      setShowCreateUser(false);
+
+      // Wait a bit before fetching users to ensure DB is updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error(error instanceof Error ? error.message : "Error updating user");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const cancelForm = () => {
+    setEditingUser(null);
+    setNewUser({ email: "", password: "", name: "", company_id: "", role: "Operator" });
+    setShowCreateUser(false);
+  };
+
   if (!user || !isAdmin()) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -209,7 +316,10 @@ export default function UsersManagementPage() {
         </div>
 
         <Button
-          onClick={() => setShowCreateUser(!showCreateUser)}
+          onClick={() => {
+            setEditingUser(null);
+            setShowCreateUser(!showCreateUser);
+          }}
           className="flex items-center gap-2"
         >
           <UserPlus className="h-4 w-4" />
@@ -220,13 +330,15 @@ export default function UsersManagementPage() {
       {showCreateUser && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Create New User</CardTitle>
+            <CardTitle className="text-xl">
+              {editingUser ? "Edit User" : "Create New User"}
+            </CardTitle>
             <CardDescription>
-              Enter new user information
+              {editingUser ? "Update user information" : "Enter new user information"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -240,21 +352,23 @@ export default function UsersManagementPage() {
                     dir="ltr"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                    minLength={6}
-                  />
-                </div>
+                {!editingUser && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Minimum 6 characters"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name ((Optional))</Label>
+                <Label htmlFor="name">Full Name (Optional)</Label>
                 <Input
                   id="name"
                   type="text"
@@ -263,14 +377,57 @@ export default function UsersManagementPage() {
                   onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company *</Label>
+                  <Select
+                    value={newUser.company_id}
+                    onValueChange={(value) => setNewUser(prev => ({ ...prev, company_id: value }))}
+                    required
+                  >
+                    <SelectTrigger id="company">
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            {company.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value) => setNewUser(prev => ({ ...prev, role: value }))}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Operator">Operator</SelectItem>
+                      <SelectItem value="Coordinator">Coordinator</SelectItem>
+                      <SelectItem value="Supervisor / Director">Supervisor / Director</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={creatingUser}>
-                  {creatingUser ? "Creating..." : "Create User"}
+                  {creatingUser
+                    ? (editingUser ? "Updating..." : "Creating...")
+                    : (editingUser ? "Update User" : "Create User")
+                  }
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowCreateUser(false)}
+                  onClick={cancelForm}
                 >
                   Cancel
                 </Button>
@@ -321,6 +478,15 @@ export default function UsersManagementPage() {
 
               {userProfile.email !== user.email && (
                 <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditUser(userProfile)}
+                    className="flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    Edit
+                  </Button>
                   <Button
                     size="sm"
                     variant="destructive"

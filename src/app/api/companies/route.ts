@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         // Get user's role for this company
         const { data: userCompany } = await supabaseAdmin
           .from('user_companies')
-          .select('role')
+          .select('role, is_primary')
           .eq('user_id', user.id)
           .eq('company_id', company.id)
           .single();
@@ -95,7 +95,8 @@ export async function GET(request: NextRequest) {
         return {
           ...company,
           user_count: count || 0,
-          user_role: userCompany?.role || 'member',
+          user_role: userCompany?.role || 'Operator',
+          is_primary: userCompany?.is_primary || false,
           created_by_user: createdByUser
         } as CompanyWithStats;
       })
