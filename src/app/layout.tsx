@@ -7,6 +7,7 @@ import { CompanyProvider } from "@/contexts/CompanyContext";
 import { FarmProvider } from "@/contexts/FarmContext";
 import { CategoryProvider } from "@/contexts/CategoryContext";
 import { ActivityProvider } from "@/contexts/ActivityContext";
+import { EquipmentProvider } from "@/contexts/EquipmentContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,8 +39,10 @@ export default function RootLayout({
             <FarmProvider>
               <CategoryProvider>
                 <ActivityProvider>
-                  {children}
-                  <Toaster />
+                  <EquipmentProvider>
+                    {children}
+                    <Toaster />
+                  </EquipmentProvider>
                 </ActivityProvider>
               </CategoryProvider>
             </FarmProvider>

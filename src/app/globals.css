@@ -1,3 +1,78 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fix Popper wrapper - this is the outer container */
+[data-radix-popper-content-wrapper] {
+  background-color: white !important;
+}
+
+/* Fix Select component background and visibility */
+[data-radix-select-trigger] {
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border));
+}
+
+/* Fix Select content with MAXIMUM specificity */
+div[data-radix-select-content].bg-popover {
+  background-color: white !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+div[data-radix-select-content][role="listbox"] {
+  background-color: white !important;
+}
+
+[data-radix-select-content] {
+  background-color: white !important;
+}
+
+/* Alternative for theme support */
+/*
+div[data-radix-select-content].bg-popover {
+  background-color: hsl(var(--background)) !important;
+}
+*/
+
+[data-radix-select-item] {
+  background-color: transparent !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-radix-select-item]:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+[data-radix-select-item][data-state="checked"] {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Fix DropdownMenu and Menu component background */
+div[data-radix-dropdown-menu-content].bg-popover,
+div[data-radix-menu-content].bg-popover,
+[data-radix-dropdown-menu-content],
+[data-radix-menu-content] {
+  background-color: white !important;
+}
+
+/* Alternative: use theme variable instead of white */
+/*
+div[data-radix-dropdown-menu-content].bg-popover,
+div[data-radix-menu-content].bg-popover,
+[data-radix-dropdown-menu-content],
+[data-radix-menu-content] {
+  background-color: hsl(var(--background)) !important;
+}
+*/
+
+[data-radix-dropdown-menu-item],
+[data-radix-menu-item] {
+  background-color: transparent !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[data-radix-dropdown-menu-item]:hover,
+[data-radix-menu-item]:hover {
+  background-color: hsl(var(--accent)) !important;
+}

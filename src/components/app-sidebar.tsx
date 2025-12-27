@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, BarChart3, Users, Shield, Building2, Wheat, Tag, Activity } from "lucide-react";
+import { FileText, BarChart3, Users, Shield, Building2, Wheat, Tag, Activity, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -56,6 +56,12 @@ const navigation = [
     href: "/dashboard/activities",
     icon: Activity,
     description: "Manage agricultural activities",
+  },
+  {
+    title: "Equipment",
+    href: "/dashboard/equipment",
+    icon: Settings,
+    description: "Manage machinery and equipment",
   },
 ];
 
